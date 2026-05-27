@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Poker Night 🃏</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<!--
+╔══════════════════════════════════════════════════════════════════╗
+║  Storage handled server-side via Netlify functions + Upstash   ║
+╚══════════════════════════════════════════════════════════════════╝
+-->
+<script>
+  // All storage goes through /api/room — no client-side keys needed
+</script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#f0c040;--gold-dim:#c09820;--green:#2ecc71;--red:#e74c3c;
+  --bg:#080808;--card:#0f0f0f;--border:#1e1e1e;--border2:#2e2e2e;
+  --text:#e8e8e8;--muted:#666;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;-webkit-font-smoothing:antialiased}
+#app{max-width:460px;margin:0 auto;padding:0 16px 80px;min-height:100vh}
+.serif{font-family:'Playfair Display',serif}
+input,select{background:var(--card);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:10px 12px;font-size:14px;font-family:'DM Mono',monospace;outline:none;width:100%;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--gold-dim)}
+.btn{background:var(--gold);border:none;border-radius:10px;color:#000;padding:13px 24px;font-size:14px;font-family:'DM Mono',monospace;font-weight:500;cursor:pointer;width:100%;transition:opacity .15s,transform .1s}
+.btn:hover{opacity:.9}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.35;cursor:not-allowed}
+.ghost{background:none;border:1px solid var(--border2);border-radius:8px;color:#999;padding:8px 14px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;transition:border-color .2s,color .2s,background .2s}
+.ghost:hover{border-color:#444;color:var(--text)}.ghost.on{background:var(--gold);color:#000;border-color:var(--gold)}.ghost:disabled{opacity:.35;cursor:not-allowed}
+.ico{background:none;border:1px solid var(--border2);border-radius:8px;color:#999;width:36px;height:36px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ico:hover{border-color:#444}
+.lbl{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px}
+.card.me{border-color:#f0c04055}
+.ph{text-align:center;padding:40px 0 28px}
+.ph .e{font-size:44px;display:block;margin-bottom:10px}
+.ph h1{font-size:32px;color:var(--gold);line-height:1}
+.ph p{color:var(--muted);font-size:12px;margin-top:6px}
+.chip-b{display:inline-flex;align-items:center;gap:5px;background:#141414;border:1px solid #2a2a2a;border-radius:6px;padding:3px 9px;font-size:11px;color:#999}
+.cdot{width:9px;height:9px;border-radius:50%;border:1px solid #555;flex-shrink:0}
+.settle{display:flex;align-items:center;justify-content:space-between;background:#0c180c;border:1px solid #1a341a;border-radius:10px;padding:12px 16px;margin-bottom:8px}
+#nb{position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;justify-content:center;padding:12px 16px;pointer-events:none;transform:translateY(-120%);transition:transform .35s cubic-bezier(.16,1,.3,1)}
+#nb.show{transform:translateY(0)}
+.ni{background:linear-gradient(135deg,#1a1200,#2a1f00);border:1px solid var(--gold);border-radius:16px;padding:16px 20px;max-width:380px;width:100%;box-shadow:0 8px 32px rgba(240,192,64,.3)}
+.nh{font-weight:500;color:var(--gold);font-size:15px;margin-bottom:4px}
+.ns{color:#bbb;font-size:12px}
+.nf{color:#777;font-size:11px;margin-top:6px;font-style:italic;display:none}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:flex-end;justify-content:center;z-index:500}
+.ms{background:#111;border-top:1px solid #2a2a2a;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
+.url{background:#080808;border:1px solid #1a1a1a;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:10px;color:#444;word-break:break-all;user-select:all;cursor:text;line-height:1.4}
+.dr{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.dr select{width:44px;flex-shrink:0;padding:8px 4px}
+.dr .cd{width:16px;height:16px;border-radius:50%;flex-shrink:0;border:1px solid #555}
+.bp{font-size:10px;color:#555;background:#141414;border:1px solid #222;border-radius:4px;padding:1px 6px}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.d1{animation:pulse 1.4s 0s infinite}.d2{animation:pulse 1.4s .2s infinite}.d3{animation:pulse 1.4s .4s infinite}
+@keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.fu{animation:fu .4s ease both}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:4px}
+#qrb img,#qrb canvas,#qrb2 img,#qrb2 canvas{border-radius:10px!important;display:block}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="nb"><div class="ni"><div class="nh" id="nh"></div><div class="ns" id="ns"></div><div class="nf" id="nf"></div></div></div>
+
+<script>
+// ── Room storage via Netlify function ─────────────────────────────
+// All reads/writes go through /api/room which uses Upstash Redis
+
+async function binCreate(data) {
+  const id = Math.random().toString(36).slice(2,9) + Math.random().toString(36).slice(2,9);
+  await binSet(id, data);
+  return id;
+}
+
+async function binGet(id) {
+  try {
+    const r = await fetch(`/api/room?id=${id}`);
+    if (!r.ok) { console.error("binGet failed", r.status, await r.text()); return null; }
+    const j = await r.json();
+    return j || null;
+  } catch(e) { console.error("binGet error", e); return null; }
+}
+
+async function binSet(id, data) {
+  try {
+    const r = await fetch(`/api/room?id=${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!r.ok) { const t = await r.text(); console.error("binSet failed", r.status, t); alert("Storage error: " + t); }
+  } catch(e) { console.error("binSet error", e); alert("Network error: " + e.message); }
+}
+
+// ── Polling sync ──────────────────────────────────────────────────
+let pollTimer = null;
+let pollHandlers = [];
+let lastPollData = null;
+
+function startPolling(roomId) {
+  stopPolling();
+  const tick = async () => {
+    const r = await binGet(roomId);
+    if (!r) return;
+    const sig = JSON.stringify(r);
+    if (sig !== lastPollData) {
+      lastPollData = sig;
+      pollHandlers.forEach(h => h(r));
+    }
+  };
+  tick();
+  pollTimer = setInterval(tick, 2500);
+}
+function stopPolling() { clearInterval(pollTimer); pollTimer = null; pollHandlers = []; lastPollData = null; }
+function onSync(fn) { pollHandlers.push(fn); return () => { pollHandlers = pollHandlers.filter(h => h !== fn); }; }
+
+// ── Constants ─────────────────────────────────────────────────────
+const CC = ["#e8e8e8","#e74c3c","#3498db","#2c2c2c","#2ecc71","#f39c12","#9b59b6"];
+const CN = ["White","Red","Blue","Black","Green","Orange","Purple"];
+const PRESETS = {
+  j:{ gameName:"Johnny House", denoms:[{label:"White",value:1,ci:0},{label:"Red",value:5,ci:1},{label:"Blue",value:25,ci:2},{label:"Black",value:100,ci:3}]},
+  t:{ gameName:"10-20", denoms:[{label:"White",value:10,ci:0},{label:"Red",value:20,ci:1},{label:"Blue",value:100,ci:2},{label:"Black",value:500,ci:3}]},
+};
+
+// ── Utils ─────────────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2,9);
+const fmt = c => { const d=c/100; return d%1===0?`$${d}`:`$${d.toFixed(2)}`; };
+const roomUrl = id => `${location.origin}${location.pathname}?room=${id}`;
+const $ = id => document.getElementById(id);
+
+function copyText(text, btnId) {
+  const done = () => { if (!btnId) return; const b=$(btnId); if(!b)return; b.textContent="✓ Copied!"; b.style.color="var(--green)"; setTimeout(()=>{b.textContent="🔗 Copy link";b.style.color=""},2000); };
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(fb); else fb();
+  function fb() { const t=document.createElement("textarea"); t.value=text; t.style.cssText="position:fixed;opacity:0"; document.body.appendChild(t); t.focus(); t.select(); try{document.execCommand("copy");done();}catch{} document.body.removeChild(t); }
+}
+
+function drawQR(containerId, url, size=160) {
+  const el=$(containerId); if(!el)return; el.innerHTML="";
+  if(window.QRCode){
+    try{ new QRCode(el,{text:url,width:size,height:size,colorDark:"#f0c040",colorLight:"#111111",correctLevel:QRCode.CorrectLevel.M}); }
+    catch{ el.innerHTML=`<div style="width:${size}px;height:${size}px;background:#1a1a1a;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#555;font-size:11px;padding:10px;text-align:center">Use copy link</div>`; }
+  }
+}
+
+// ── Roasts ────────────────────────────────────────────────────────
+const R=[
+  ["is warming up 🎯","First buyin, full of hope and terrible bluffs."],
+  ["doubles down 😤","Second wind. Dangerous or delusional — hard to say."],
+  ["won't quit 🩸","Third buyin. The classic 'I just need one good hand'."],
+  ["is on a mission 🚂","Fourth buyin. Respect the commitment. Question the life choices."],
+  ["needs a moment 😰","Five buyins deep. This is fine. Everything is fine."],
+  ["is a menace 🤡","Six buyins. At this point just enjoy the ride."],
+  ["is funding the game 💸","Seven buyins. The table thanks you for your generosity."],
+  ["said it's just money 🤷","Eight buyins. A true philosopher of the felt."],
+  ["is the table's ATM 🏧","Nine buyins. Someone check if they're okay."],
+  ["IS the pot now 🪙","Ten buyins. Certified degenerate. We salute you."],
+  ["transcended loss 🌀","Eleven. At this point it's performance art."],
+  ["entered another realm 🌌","Twelve buyins. The felt has claimed another soul."],
+  ["is a poker legend 🏆","Thirteen. They'll tell stories about this night."],
+  ["broke the simulation 💻","Fourteen. Does the matrix even matter anymore?"],
+  ["is writing a memoir 📖","Fifteen. Chapter: 'How I Funded Everyone's Weekend'."],
+];
+const roast = (name, n) => { const r=R[Math.min(n-1,R.length-1)]; return {hl:`${name} ${r[0]}`,sub:r[1]}; };
+const fish = (name, n) => n>=16?`🐟 Something smells fishy… oh wait, it's ${name}.`:n>=10?`🎣 ${name} is giving off serious fish vibes.`:n>=6?`👀 Rumor has it ${name} might be a little… fishy.`:null;
+
+// ── Notifications ─────────────────────────────────────────────────
+let nt;
+function showNotif(n) {
+  $("nh").textContent=n.hl||""; $("ns").textContent=n.sub||"";
+  const f=$("nf"); f.textContent=n.fish||""; f.style.display=n.fish?"block":"none";
+  $("nb").classList.add("show"); clearTimeout(nt); nt=setTimeout(()=>$("nb").classList.remove("show"),5000);
+}
+
+// ── Settlement ────────────────────────────────────────────────────
+function settle(players) {
+  const b=players.map(p=>({name:p.name,bal:(p.cv||0)-(p.tb||0)}));
+  const de=b.filter(x=>x.bal<0).map(x=>({...x})), cr=b.filter(x=>x.bal>0).map(x=>({...x}));
+  const tx=[]; let i=0,j=0;
+  while(i<de.length&&j<cr.length){
+    const a=Math.min(-de[i].bal,cr[j].bal);
+    if(a>0)tx.push({from:de[i].name,to:cr[j].name,amt:a});
+    de[i].bal+=a; cr[j].bal-=a;
+    if(Math.abs(de[i].bal)<1)i++; if(Math.abs(cr[j].bal)<1)j++;
+  }
+  return tx;
+}
+
+// ── Poker Table SVG ───────────────────────────────────────────────
+function tablesvg(players, myId, max=9) {
+  const W=340,H=210,cx=W/2,cy=H/2,rx=128,ry=76;
+  const seats=Array.from({length:max},(_,i)=>{const a=(i/max)*2*Math.PI-Math.PI/2;return{x:cx+rx*Math.cos(a),y:cy+ry*Math.sin(a)};});
+
+  // t = 0 (1 buyin) to 1.0 (10+ buyins)
+  function fireIntensity(rb){ return Math.min(rb-1,9)/9; }
+
+  function fireSeat(sx,sy,rb,idx,isMe){
+    const t = fireIntensity(rb); // 0..1
+    if(rb < 2) return ""; // no fire on first buyin
+
+    // Colors: gold->orange->red->dark red
+    const innerColor = t<0.33 ? "#f0a020" : t<0.66 ? "#e05010" : "#cc1010";
+    const outerColor = t<0.33 ? "#f0c040" : t<0.66 ? "#f06020" : "#ff2200";
+    const glowColor  = t<0.33 ? "#f0c04066" : t<0.66 ? "#f0602066" : "#ff220066";
+    const glowR = 18 + t*14; // glow grows with intensity
+    const numFlames = Math.round(2 + t*4); // 2 to 6 flames
+    const id = `f${idx}`;
+
+    // Defs: gradient for the circle fill + glow filter
+    let defs = `<defs>
+      <radialGradient id="${id}g" cx="50%" cy="40%" r="60%">
+        <stop offset="0%" stop-color="${outerColor}"/>
+        <stop offset="60%" stop-color="${innerColor}"/>
+        <stop offset="100%" stop-color="#880000"/>
+      </radialGradient>
+      <filter id="${id}f" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="${3+t*5}" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>`;
+
+    // Glow ring behind the circle
+    const glow = `<circle cx="${sx}" cy="${sy}" r="${glowR.toFixed(1)}" fill="${glowColor}" filter="url(#${id}f)">
+      <animate attributeName="r" values="${(glowR).toFixed(1)};${(glowR+3+t*4).toFixed(1)};${glowR.toFixed(1)}" dur="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;0.3;0.7" dur="0.8s" repeatCount="indefinite"/>
+    </circle>`;
+
+    // Flame tongues rising from top of circle — these give the "on fire" look
+    let flames = "";
+    for(let fi=0; fi<numFlames; fi++){
+      const spread = 28 * t;
+      const offset = (fi/(numFlames-1||1) - 0.5) * spread;
+      const fx = sx + offset;
+      const fy = sy - 16;
+      const fh = 8 + t*14 + Math.random()*4;
+      const fw = 4 + t*3;
+      const dur = (0.4 + fi*0.12).toFixed(2);
+      const delay = (fi*0.08).toFixed(2);
+      flames += `<ellipse cx="${fx.toFixed(1)}" cy="${(fy-fh/2).toFixed(1)}" rx="${fw.toFixed(1)}" ry="${(fh/2).toFixed(1)}"
+        fill="url(#${id}g)" opacity="${(0.5+t*0.4).toFixed(2)}">
+        <animate attributeName="ry" values="${(fh/2).toFixed(1)};${(fh/2*1.4).toFixed(1)};${(fh/2*0.7).toFixed(1)};${(fh/2).toFixed(1)}" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/>
+        <animate attributeName="cy" values="${(fy-fh/2).toFixed(1)};${(fy-fh/2-3).toFixed(1)};${(fy-fh/2+2).toFixed(1)};${(fy-fh/2).toFixed(1)}" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="${(0.5+t*0.4).toFixed(2)};${(0.8+t*0.2).toFixed(2)};${(0.3+t*0.3).toFixed(2)};${(0.5+t*0.4).toFixed(2)}" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/>
+      </ellipse>`;
+    }
+
+    return `${defs}${glow}${flames}`;
+  }
+
+  const svgSeats = seats.map((s,i) => {
+    const p=players[i], me=p?.id===myId;
+    if(!p) return `<circle cx="${s.x}" cy="${s.y}" r="18" fill="#0a0a0a" stroke="#1e1e1e" stroke-width="1.5"/><text x="${s.x}" y="${s.y+4}" text-anchor="middle" font-size="12" fill="#2a2a2a">+</text>`;
+
+    const rb = Math.min(p.buyinCount||1, 10);
+    const t = fireIntensity(rb);
+
+    // Circle fill: gold at 1, burning red at 10
+    const circFill = rb<2 ? (me?"#1e1400":"#111") :
+                     t<0.33 ? (me?"#1e1000":"#130a00") :
+                     t<0.66 ? (me?"#1e0800":"#0f0400") : "#0a0000";
+    const circStroke = rb<2 ? (me?"#f0c040":"#3a3a3a") :
+                       t<0.33 ? "#f07020" : t<0.66 ? "#e03010" : "#cc0000";
+    const textCol = rb<2 ? (me?"#f0c040":"#ccc") :
+                    t<0.33 ? "#f0a030" : t<0.66 ? "#ff6020" : "#ff3010";
+
+    return `${fireSeat(s.x,s.y,rb,i,me)}
+<circle cx="${s.x}" cy="${s.y}" r="18" fill="${circFill}" stroke="${circStroke}" stroke-width="${me?2.5:1.5}"/>
+<text x="${s.x}" y="${s.y-1}" text-anchor="middle" font-size="11" fill="${textCol}" font-family="DM Mono,monospace">${p.name.slice(0,2).toUpperCase()}</text>
+<text x="${s.x}" y="${s.y+9}" text-anchor="middle" font-size="6" fill="${me?"#a08020":"#555"}" font-family="DM Mono,monospace">${p.name.length>8?p.name.slice(0,7)+"…":p.name}</text>
+${rb>1?`<circle cx="${s.x+13}" cy="${s.y-12}" r="7" fill="${t>0.66?"#8b0000":t>0.33?"#c0392b":"#e74c3c"}"/><text x="${s.x+13}" y="${s.y-9}" text-anchor="middle" font-size="7" fill="white">${rb}</text>`:""}`;
+  }).join("");
+
+  return `<div style="width:100%;margin-bottom:20px"><svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">
+<ellipse cx="${cx}" cy="${cy}" rx="${rx-6}" ry="${ry-6}" fill="#1a3a1a" stroke="#2d5a2d" stroke-width="3"/>
+<ellipse cx="${cx}" cy="${cy}" rx="${rx-18}" ry="${ry-18}" fill="none" stroke="#2d5a2d" stroke-width="1" stroke-dasharray="4 4" opacity=".6"/>
+<text x="${cx}" y="${cy+4}" text-anchor="middle" fill="#2d5a2d" font-size="10" font-family="Playfair Display,serif" letter-spacing="1">POKER NIGHT</text>
+${svgSeats}</svg></div>`;
+}
+
+
+// ═══════════════════════════════════════════════════════
+//  APP STATE
+// ═══════════════════════════════════════════════════════
+const S = {
+  screen:"setup",
+  roomId:null, binId:null, myId:null, isHost:false, room:null,
+  gname:"", denoms:[], startChips:[], ba:10000,
+  tab:"game", ecId:null, ec:{}, pid:null, qr:false, seen:new Set(),
+};
+
+let unsub=null;
+function render(){ $("app").innerHTML=SCREENS[S.screen](); BIND[S.screen]?.(); }
+
+// ═══════════════════════════════════════════════════════
+//  SETUP
+// ═══════════════════════════════════════════════════════
+SCREENS={};BIND={};
+
+SCREENS.setup=()=>`
+<div class="ph fu">
+  <span class="e">🃏</span>
+  <h1 class="serif">Poker Night</h1>
+  <p>Host a game · invite friends · settle up</p>
+</div>
+<div style="margin-bottom:20px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span class="lbl" style="margin:0">Presets</span>
+    <button class="ghost" onclick="savePreset()" style="font-size:11px;padding:4px 10px">+ Save as preset</button>
+  </div>
+  <div id="presets-list" style="display:flex;gap:6px;flex-wrap:wrap">${renderPresets()}</div>
+</div>
+<div style="margin-bottom:20px">
+  <span class="lbl">Game name</span>
+  <input id="gn" placeholder="e.g. Friday Night, 1-2 NL" value="${S.gname}" oninput="S.gname=this.value;ucb()"/>
+</div>
+<div style="margin-bottom:24px">
+  <span class="lbl">Chip denominations</span>
+  <div id="dl">${dl()}</div>
+  <button class="ghost" onclick="addD()" style="margin-top:4px">+ Add chip</button>
+</div>
+<button class="btn" id="cb" onclick="createRoom()">📱 Create Room</button>
+`;
+
+BIND.setup=()=>ucb();
+
+function dl(){
+  // Starting stack = sum of all chips x1 each (just shows per-chip value and running total)
+  const stackTotal = S.denoms.reduce((s,d)=>s+(d.value||0)*100,0);
+  const denomsHtml = S.denoms.map((d,i)=>`
+<div class="dr">
+  <select onchange="S.denoms[${i}].ci=parseInt(this.value);$('dl').innerHTML=dl()">
+    ${CN.map((n,ci)=>`<option value="${ci}"${d.ci==ci?" selected":""}>${n}</option>`).join("")}
+  </select>
+  <div class="cd" style="background:${CC[d.ci]}"></div>
+  <input style="flex:1" placeholder="Label" value="${d.label}" oninput="S.denoms[${i}].label=this.value;ucb();$('dl').innerHTML=dl()"/>
+  <input style="width:72px" type="number" placeholder="$" value="${d.value}" min="0" step="0.25" oninput="S.denoms[${i}].value=parseFloat(this.value)||0;ucb();$('dl').innerHTML=dl()"/>
+  <button style="background:none;border:none;color:#444;cursor:pointer;font-size:20px;padding:0 4px" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='#444'" onclick="S.denoms.splice(${i},1);$('dl').innerHTML=dl();ucb()">×</button>
+</div>`).join("");
+
+  // Stack value preview: show chips with count input + live total
+  const stackPreview = S.denoms.every(d=>d.label&&d.value>0) ? `
+<div style="background:#0a0a0a;border:1px solid #1e1e1e;border-radius:10px;padding:12px 14px;margin-top:12px">
+  <span class="lbl" style="margin-bottom:8px">Starting stack preview</span>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+    ${S.denoms.map((d,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;background:#111;border:1px solid #222;border-radius:8px;padding:6px 10px">
+      <div class="cdot" style="background:${CC[d.ci]};width:12px;height:12px"></div>
+      <span style="color:#aaa;font-size:12px">${d.label}</span>
+      <input type="number" id="sc_${i}" value="${S.startChips?.[i]||1}" min="1" style="width:44px;padding:4px 6px;font-size:12px;text-align:center" oninput="updateStackTotal()"/>
+      <span style="color:var(--muted);font-size:11px">× ${fmt(d.value*100)}</span>
+    </div>`).join("")}
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #1e1e1e;padding-top:8px">
+    <span style="color:var(--muted);font-size:12px">Starting stack value</span>
+    <span style="color:var(--gold);font-weight:700;font-size:18px" id="stack-total">${fmt(calcStackTotal())}</span>
+  </div>
+</div>` : "";
+
+  return denomsHtml + stackPreview;
+}
+
+function calcStackTotal(){
+  if(!S.denoms||!S.denoms.every(d=>d.label&&d.value>0)) return S.ba||10000;
+  // Always sync S.startChips from DOM if inputs exist
+  S.denoms.forEach((_,i)=>{
+    const inp = document.getElementById(`sc_${i}`);
+    if(inp) S.startChips[i] = parseInt(inp.value)||1;
+  });
+  const total = S.denoms.reduce((s,d,i)=>s+(S.startChips?.[i]||1)*d.value*100, 0);
+  return total || S.ba || 10000;
+}
+
+function updateStackTotal(){
+  // Save chip counts
+  S.startChips = S.denoms.map((_,i)=>{
+    const inp = document.getElementById(`sc_${i}`);
+    return inp ? parseInt(inp.value)||0 : 1;
+  });
+  const el = document.getElementById("stack-total");
+  if(el) el.textContent = fmt(calcStackTotal());
+  // Update starting buyin amount
+  S.ba = calcStackTotal() || 10000;
+}
+
+function ucb(){ const b=$("cb"); if(!b)return; b.disabled=!(S.gname.trim()&&S.denoms.length>0&&S.denoms.every(d=>d.label&&d.value>0)); }
+
+// ── Preset management ─────────────────────────────────
+const DEFAULT_PRESETS = [
+  {id:"default-1020", name:"10-20", denoms:[
+    {label:"White",value:0.1,ci:0},
+    {label:"Red",value:0.2,ci:1},
+    {label:"Green",value:0.5,ci:4},
+    {label:"Blue",value:1,ci:2},
+  ], qty:[10,10,6,4]}
+];
+
+const PRESET_VERSION = "v4";
+function getPresets(){
+  try {
+    // If version mismatch, reset to defaults
+    if(localStorage.getItem("poker-presets-version") !== PRESET_VERSION){
+      localStorage.setItem("poker-presets", JSON.stringify(DEFAULT_PRESETS));
+      localStorage.setItem("poker-presets-version", PRESET_VERSION);
+    }
+    const saved = localStorage.getItem("poker-presets");
+    if(saved) return JSON.parse(saved);
+    return DEFAULT_PRESETS;
+  } catch { return DEFAULT_PRESETS; }
+}
+
+function savePresetList(presets){
+  localStorage.setItem("poker-presets", JSON.stringify(presets));
+}
+
+function renderPresets(){
+  const presets = getPresets();
+  if(presets.length===0) return `<span style="color:var(--muted);font-size:12px">No presets yet — save one below</span>`;
+  return presets.map(p=>`
+    <div style="display:flex;align-items:center;background:#111;border:1px solid #2a2a2a;border-radius:8px;overflow:hidden">
+      <button class="ghost" onclick="lp('${p.id}')" style="border:none;border-radius:0;padding:7px 12px;font-size:12px">${p.name}</button>
+      <button onclick="renamePreset('${p.id}')" style="background:none;border:none;border-left:1px solid #1a1a1a;color:#555;cursor:pointer;padding:7px 8px;font-size:12px" title="Rename" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='#555'">✏️</button>
+      <button onclick="deletePreset('${p.id}')" style="background:none;border:none;border-left:1px solid #1a1a1a;color:#555;cursor:pointer;padding:7px 8px;font-size:14px" title="Delete" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='#555'">×</button>
+    </div>`).join("");
+}
+
+function lp(id){
+  const pr = getPresets().find(p=>p.id===id);
+  if(!pr) return;
+  S.gname=pr.name; S.denoms=pr.denoms.map(d=>({...d}));
+  S.startChips = pr.qty ? [...pr.qty] : pr.denoms.map(()=>1);
+  render();
+}
+
+function savePreset(){
+  if(!S.gname.trim()||!S.denoms.every(d=>d.label&&d.value>0)){
+    alert("Fill in the game name and all chip denominations first."); return;
+  }
+  const name = S.gname.trim();
+  const presets = getPresets();
+  const existingIdx = presets.findIndex(p=>p.name.toLowerCase()===name.toLowerCase());
+  const qty = S.denoms.map((_,i)=>{
+    const inp = document.getElementById(`sc_${i}`);
+    return inp ? (parseInt(inp.value)||1) : (S.startChips?.[i]||1);
+  });
+  if(existingIdx>=0){
+    if(!confirm(`Replace existing preset "${name}"?`)) return;
+    presets[existingIdx] = {id:presets[existingIdx].id, name, denoms:S.denoms.map(d=>({...d})), qty};
+  } else {
+    presets.push({id:"c"+uid(), name, denoms:S.denoms.map(d=>({...d})), qty});
+  }
+  savePresetList(presets);
+  const el = document.getElementById("presets-list");
+  if(el) el.innerHTML = renderPresets();
+  const btn = document.querySelector("button[onclick='savePreset()']");
+  if(btn){ btn.textContent="✓ Saved!"; btn.style.color="var(--green)"; setTimeout(()=>{btn.textContent="+ Save as preset";btn.style.color="";},2000); }
+}
+
+function renamePreset(id){
+  const presets = getPresets();
+  const pr = presets.find(p=>p.id===id); if(!pr) return;
+  const newName = prompt("Rename preset:", pr.name);
+  if(!newName||!newName.trim()) return;
+  pr.name = newName.trim();
+  savePresetList(presets);
+  const el = document.getElementById("presets-list");
+  if(el) el.innerHTML = renderPresets();
+}
+
+function deletePreset(id){
+  const presets = getPresets();
+  const pr = presets.find(p=>p.id===id);
+  if(!pr||!confirm(`Delete "${pr.name}"?`)) return;
+  savePresetList(presets.filter(p=>p.id!==id));
+  const el = document.getElementById("presets-list");
+  if(el) el.innerHTML = renderPresets();
+}
+
+function addD(){ S.denoms.push({label:"",value:1,ci:S.denoms.length%CC.length}); $("dl").innerHTML=dl(); ucb(); }
+
+async function createRoom(){
+  console.log("createRoom called", S.gname, S.denoms);
+  try {
+    const hid=uid();
+    let startingStack;
+    try { startingStack = calcStackTotal(); } catch(e) { startingStack = S.ba || 10000; }
+    if(!startingStack || startingStack <= 0) startingStack = S.ba || 10000;
+    S.ba = startingStack;
+    const gameName = (document.getElementById("gn")?.value?.trim()) || S.gname;
+    S.gname = gameName;
+    const room={phase:"lobby",hostId:hid,game:{gameName,denoms:S.denoms,startingStack},players:[],events:[]};
+    const btn=$("cb"); if(btn){btn.textContent="Creating…";btn.disabled=true;}
+    const binId=await binCreate(room);
+    if(!binId){ alert("Couldn't create room — storage error."); if(btn){btn.textContent="📱 Create Room";btn.disabled=false;} return; }
+    S.roomId=binId; S.binId=binId; S.myId=hid; S.isHost=true; S.room=room;
+    history.pushState({},"",`?room=${binId}`);
+    S.screen="nameHost"; render();
+  } catch(err) {
+    alert("Error creating room: " + err.message);
+    const btn=$("cb"); if(btn){btn.textContent="📱 Create Room";btn.disabled=false;}
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAME HOST
+// ═══════════════════════════════════════════════════════
+SCREENS.nameHost=()=>`
+<div style="display:flex;justify-content:flex-end;padding-top:16px">
+  <button class="ghost" onclick="S.screen='setup';render()" style="font-size:12px">✕ Exit</button>
+</div>
+<div class="ph fu" style="padding-top:16px">
+  <span class="e">🪑</span>
+  <h1 class="serif" style="font-size:26px">What's your name?</h1>
+  <p style="color:var(--muted)">You'll be seated first</p>
+</div>
+<span class="lbl">Your name</span>
+<input id="hn" placeholder="Enter your name" style="margin-bottom:20px" oninput="$('hs').disabled=!this.value.trim()"/>
+<button class="btn" id="hs" onclick="seatHost()" disabled>Take a Seat →</button>`;
+
+BIND.nameHost=()=>{ const i=$("hn"); i?.focus(); i?.addEventListener("keydown",e=>{if(e.key==="Enter")seatHost();}); };
+
+async function seatHost(){
+  const name=$("hn")?.value?.trim(); if(!name)return;
+  const r=await binGet(S.binId); 
+  if(!r){ alert("Couldn't load room. binId=" + S.binId); return; }
+  r.players=[{id:S.myId,name,buyins:[],chips:{}}];
+  await binSet(S.binId,r); S.room=r;
+  S.screen="lobby"; render();
+}
+
+// ═══════════════════════════════════════════════════════
+//  JOIN
+// ═══════════════════════════════════════════════════════
+SCREENS.join=()=>`
+<div style="display:flex;justify-content:flex-end;padding-top:16px">
+  <button class="ghost" onclick="history.back()" style="font-size:12px">← Back</button>
+</div>
+<div class="ph fu" style="padding-top:16px">
+  <span class="e">🃏</span>
+  <h1 class="serif" style="font-size:26px">You're invited!</h1>
+  <p id="jgn" style="color:var(--muted)">Loading game…</p>
+</div>
+<span class="lbl">Your name</span>
+<input id="jn" placeholder="Enter your name" style="margin-bottom:20px" oninput="$('jb').disabled=!this.value.trim()"/>
+<button class="btn" id="jb" onclick="doJoin()" disabled>Take a Seat 🪑</button>`;
+
+BIND.join=()=>{
+  binGet(S.roomId).then(r=>{ const e=$("jgn"); if(e&&r) e.textContent=r.game?.gameName||"Poker Night"; });
+  const i=$("jn"); i?.focus(); i?.addEventListener("keydown",e=>{if(e.key==="Enter")doJoin();});
+};
+
+async function doJoin(){
+  const name=$("jn")?.value?.trim(); if(!name)return;
+  const r=await binGet(S.roomId); if(!r){alert("Room not found! Check the link.");return;}
+  const pid=uid();
+  r.players=[...(r.players||[]),{id:pid,name,buyins:[],chips:{}}];
+  await binSet(S.roomId,r);
+  S.myId=pid; S.room=r; S.binId=S.roomId;
+  S.screen=r.phase==="game"?"game":"lobby"; render();
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOBBY
+// ═══════════════════════════════════════════════════════
+SCREENS.lobby=()=>{
+  const room=S.room||{}, pl=room.players||[], url=roomUrl(S.roomId);
+  return`
+<div style="padding-top:32px" class="fu">
+  <div style="text-align:center;margin-bottom:24px">
+    <div style="font-size:32px;margin-bottom:8px">🃏</div>
+    <h2 class="serif" style="color:var(--gold);font-size:22px">${room.game?.gameName||"Loading…"}</h2>
+    <p style="color:var(--muted);font-size:12px;margin-top:4px">${S.isHost?"Share the QR — waiting for players":"Waiting for host to start…"}</p>
+  </div>
+  ${tablesvg(pl,S.myId)}
+  <div style="margin-bottom:20px">
+    <span class="lbl" id="lobby-count" style="text-align:center;display:block;margin-bottom:10px">${pl.length} player${pl.length!==1?"s":""} seated</span>
+    <div id="lobby-players">${pl.map(p=>`<div class="card${p.id===S.myId?" me":""}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:6px">
+      <div style="width:34px;height:34px;border-radius:50%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:13px;flex-shrink:0">${p.name.slice(0,2).toUpperCase()}</div>
+      <span style="flex:1;color:${p.id===S.myId?"var(--gold)":"var(--text)"}">${p.name}${p.id===S.myId?` <span style="color:var(--muted);font-size:11px">(you)</span>`:""}</span>
+      ${room.hostId===p.id?`<span style="color:var(--muted);font-size:11px">host</span>`:""}
+    </div>`).join("")}</div>
+  </div>
+  <div style="display:flex;justify-content:${S.isHost?"space-between":"flex-end"};margin-bottom:16px">
+    ${S.isHost?`<span class="lbl" style="margin:0;align-self:center">Invite link</span>`:""}
+    <button class="ghost" onclick="if(confirm('Leave this room?')){S.screen='setup';S.room=null;S.roomId=null;S.myId=null;render();}" style="font-size:12px">✕ Leave room</button>
+  </div>
+  ${S.isHost?`
+  <div style="text-align:center;margin-bottom:16px">
+    <div id="qrb" style="display:inline-block;margin-bottom:10px"></div>
+    <div><button class="ghost" id="cpb" onclick="copyText('${url}','cpb')" style="font-size:12px">🔗 Copy link</button></div>
+    <div class="url">${url}</div>
+  </div>
+  <button class="btn" id="lobby-start" onclick="startGame()" ${pl.length<1?"disabled":""} style="font-size:15px;padding:15px">🚀 Start Game (${pl.length} player${pl.length!==1?"s":""})</button>`:`
+  <div style="display:flex;justify-content:center;gap:6px;padding:30px 0">
+    <span class="d1" style="color:var(--muted);font-size:20px">●</span>
+    <span class="d2" style="color:var(--muted);font-size:20px">●</span>
+    <span class="d3" style="color:var(--muted);font-size:20px">●</span>
+  </div>`}
+</div>`;
+};
+
+BIND.lobby=()=>{
+  setTimeout(()=>drawQR("qrb",roomUrl(S.roomId),160),80);
+  if(unsub)unsub();
+  startPolling(S.roomId);
+  unsub=onSync(r=>{
+    S.room=r;
+    if(r.phase==="game"){ stopPolling(); if(unsub){unsub();unsub=null;} S.screen="game"; render(); return; }
+    // Only update player list + start button — don't redraw QR
+    const pl=r.players||[];
+    const plist=$("lobby-players");
+    const sbtn=$("lobby-start");
+    if(plist) plist.innerHTML=pl.map(p=>`<div class="card${p.id===S.myId?" me":""}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:6px">
+      <div style="width:34px;height:34px;border-radius:50%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:13px;flex-shrink:0">${p.name.slice(0,2).toUpperCase()}</div>
+      <span style="flex:1;color:${p.id===S.myId?"var(--gold)":"var(--text)"}">${p.name}${p.id===S.myId?` <span style="color:var(--muted);font-size:11px">(you)</span>`:""}</span>
+      ${r.hostId===p.id?`<span style="color:var(--muted);font-size:11px">host</span>`:""}
+    </div>`).join("");
+    const cnt=$("lobby-count");
+    if(cnt) cnt.textContent=`${pl.length} player${pl.length!==1?"s":""} seated`;
+    if(sbtn){ sbtn.disabled=pl.length<1; sbtn.textContent=`🚀 Start Game (${pl.length} player${pl.length!==1?"s":""})`; }
+  });
+};
+
+async function startGame(){
+  const r=await binGet(S.binId); if(!r)return;
+  r.phase="game";
+  // Give everyone their first buyin automatically
+  r.players=(r.players||[]).map(p=>({
+    ...p,
+    buyins:[{amount:S.ba||10000, time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}]
+  }));
+  await binSet(S.binId,r);
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME
+// ═══════════════════════════════════════════════════════
+SCREENS.game=()=>{
+  const room=S.room||{}, game=room.game||{}, pl=room.players||[], dn=game.denoms||[];
+  const ep=pl.map(p=>{
+    const tb=(p.buyins||[]).reduce((s,b)=>s+b.amount,0);
+    const cv=dn.reduce((s,d)=>s+(p.chips?.[d.label]||0)*d.value*100,0);
+    const startingStack=game.startingStack||S.ba||10000;
+    const buyinCount=Math.max(1,Math.round(tb/startingStack));
+    return{...p,tb,cv,buyinCount};
+  });
+  const pot=ep.reduce((s,p)=>s+p.tb,0);
+  const url=roomUrl(S.roomId);
+  return`
+<div style="padding-top:20px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div>
+      <h2 class="serif" style="color:var(--gold);font-size:20px;line-height:1">${game.gameName||"Game"}</h2>
+      <span style="color:var(--muted);font-size:12px">Pot: <span style="color:var(--gold)" id="game-pot">${fmt(pot)}</span></span>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="ico" onclick="S.qr=!S.qr;render()" title="Invite">📱</button>
+      <button class="ghost" onclick="S.tab=S.tab==='game'?'settle':'game';render()" style="padding:7px 12px">${S.tab==="game"?"Settle Up":"← Game"}</button>
+      <button class="ghost" onclick="if(confirm('Leave room?')){stopPolling();S.screen='setup';S.room=null;S.roomId=null;S.myId=null;S.tab='game';render();}" style="padding:7px 10px;color:var(--muted)">✕</button>
+    </div>
+  </div>
+  ${S.qr?`<div class="card" style="text-align:center;margin-bottom:14px">
+    <div id="qrb2" style="display:inline-block;margin-bottom:8px"></div>
+    <div><button class="ghost" id="cpb2" onclick="copyText('${url}','cpb2')" style="font-size:12px">🔗 Copy link</button></div>
+    <div class="url">${url}</div>
+  </div>`:""}
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+    ${dn.map(d=>`<span class="chip-b"><span class="cdot" style="background:${CC[d.ci]}"></span>${d.label} = ${fmt(d.value*100)}</span>`).join("")}
+  </div>
+  <div id="game-players">${S.tab==="game"?gameTab(ep,dn):settleTab(ep)}</div>
+</div>
+${chipModal(pl,dn)}${photoModal(pl,dn)}`;
+};
+
+function playerCards(ep,dn){
+  return ep.map(p=>{
+    const net=p.cv-p.tb, can=S.isHost||p.id===S.myId;
+    return`<div class="card${p.id===S.myId?" me":""}">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div style="flex:1">
+      <div style="font-weight:500;color:${p.id===S.myId?"var(--gold)":"var(--text)"};font-size:15px">${p.name}${p.id===S.myId?` <span style="color:var(--muted);font-size:11px;font-weight:400">(you)</span>`:""}</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:3px">${p.buyinCount||1} buyin${(p.buyinCount||1)!==1?"s":""} · ${fmt(p.tb)} in</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">${(p.buyins||[]).map(b=>`<span class="bp">${fmt(b.amount)} @${b.time}</span>`).join("")}</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0;margin-left:12px">
+      ${p.cv>0?`<div style="color:${net>=0?"var(--green)":"var(--red)"};font-weight:500;font-size:14px">${fmt(p.cv)}</div><div style="font-size:11px;color:${net>=0?"var(--green)":"var(--red)"}">${net>=0?"+":""}${fmt(net)}</div>`:""}
+    </div>
+  </div>
+  ${can?`<div style="display:flex;gap:6px;margin-top:10px">
+    <button class="ghost" onclick="addBuyin('${p.id}')" style="flex:1;color:var(--gold)">+ Buyin ${fmt(S.ba)}</button>
+    <button class="ico" onclick="openPhoto('${p.id}')" title="AI count">📸</button>
+    <button class="ico" onclick="openChips('${p.id}')" title="Manual count">🪙</button>
+  </div>`:""}
+</div>`;}).join("");
+}
+
+function gameTab(ep,dn){
+  const amts=[5000,10000,20000,50000,100000];
+  return`
+${tablesvg(ep,S.myId)}
+<div style="margin-bottom:16px">
+  <span class="lbl">Buyin amount</span>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    ${amts.map(a=>`<button class="ghost${S.ba===a?" on":""}" onclick="S.ba=${a};render()">${fmt(a)}</button>`).join("")}
+    <input type="number" value="${S.ba/100}" min="1" style="width:80px" onchange="S.ba=Math.round((parseFloat(this.value)||0)*100)"/>
+  </div>
+</div>
+${playerCards(ep,dn)}`;
+}
+
+// settleInner used by both settleTab and updateGameCards
+function settleInner(ep){
+  const tx=settle(ep);
+  return`
+<div style="margin-bottom:20px">
+${ep.map(p=>{
+  const net=p.cv-p.tb;
+  const canEdit=S.isHost||p.id===S.myId;
+  return`<div class="card${p.id===S.myId?" me":""}" style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div><span style="font-weight:500;color:${p.id===S.myId?"var(--gold)":"var(--text)"}">${p.name}</span> <span style="color:var(--muted);font-size:12px">in ${fmt(p.tb)}</span></div>
+    <div style="text-align:right">
+      <div style="color:var(--muted);font-size:12px">${p.cv>0?fmt(p.cv):"—"}</div>
+      ${p.cv>0?`<div style="font-weight:500;font-size:13px;color:${net>=0?"var(--green)":"var(--red)"}">${net>=0?"+":""}${fmt(net)}</div>`:""}
+    </div>
+  </div>
+  ${canEdit?`<div style="display:flex;gap:6px;margin-top:10px">
+    <button class="ico" onclick="openPhoto('${p.id}')" title="AI count" style="flex:1;width:auto;padding:8px">📸 Photo count</button>
+    <button class="ico" onclick="openChips('${p.id}')" title="Manual count" style="flex:1;width:auto;padding:8px">🪙 Manual count</button>
+  </div>`:""}
+</div>`;}).join("")}
+</div>
+${(()=>{
+  const totalIn=ep.reduce((s,p)=>s+p.tb,0);
+  const totalChips=ep.reduce((s,p)=>s+p.cv,0);
+  const diff=totalChips-totalIn;
+  const anyChips=ep.some(p=>p.cv>0);
+  if(!anyChips) return "";
+  if(Math.abs(diff)<1) return `<div style="background:#0a1a0a;border:1px solid #27ae60;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--green)">✓ Chip counts match the pot perfectly</div>`;
+  return `<div style="background:#1a0800;border:1px solid #c0392b;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+    <div style="font-weight:500;color:var(--red);font-size:13px">${diff>0?"⚠️ Chips over by":"⚠️ Chips short by"} ${fmt(Math.abs(diff))}</div>
+    <div style="color:var(--muted);font-size:11px;margin-top:3px">Pot: ${fmt(totalIn)} · Chips counted: ${fmt(totalChips)} · Ask everyone to recount</div>
+  </div>`;
+})()}
+<span class="lbl">Who pays who (Zelle)</span>
+${tx.length===0
+  ?`<div style="color:var(--muted);text-align:center;padding:24px 0;font-size:13px">${ep.some(p=>p.cv>0)?"Everyone is square! 🎉":"Count everyone's chips first"}</div>`
+  :tx.map(t=>`<div class="settle"><div><span style="color:var(--red);font-weight:500">${t.from}</span> <span style="color:var(--muted)">→ Zelle →</span> <span style="color:var(--green);font-weight:500">${t.to}</span></div><div style="color:var(--gold);font-weight:700;font-size:18px">${fmt(t.amt)}</div></div>`).join("")}`;
+}
+
+function settleTab(ep){ return settleInner(ep); }
+
+function chipModal(pl,dn){
+  if(!S.ecId)return"";
+  const p=pl.find(x=>x.id===S.ecId); if(!p)return"";
+  const tot=dn.reduce((s,d)=>s+(S.ec[d.label]||0)*d.value*100,0);
+  return`<div class="mo" onclick="if(event.target===this){S.ecId=null;render()}">
+<div class="ms">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h3 class="serif" style="color:var(--gold)">${p.name}'s chips</h3>
+    <button onclick="S.ecId=null;render()" style="background:none;border:none;color:#555;cursor:pointer;font-size:22px">×</button>
+  </div>
+  ${dn.map(d=>`<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <div class="cdot" style="background:${CC[d.ci]};width:18px;height:18px;flex-shrink:0"></div>
+    <span style="color:#aaa;flex:1;font-size:14px">${d.label} <span style="color:var(--muted)">(${fmt(d.value*100)})</span></span>
+    <button class="ico" onclick="S.ec['${d.label}']=Math.max(0,(S.ec['${d.label}']||0)-1);render()">−</button>
+    <input type="number" value="${S.ec[d.label]||0}" min="0" style="width:60px;text-align:center;padding:8px 4px" onchange="S.ec['${d.label}']=parseInt(this.value)||0"/>
+    <button class="ico" onclick="S.ec['${d.label}']=(S.ec['${d.label}']||0)+1;render()">+</button>
+  </div>`).join("")}
+  <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid #222">
+    <span style="color:var(--muted)">Total</span><span style="color:var(--gold);font-weight:700;font-size:16px">${fmt(tot)}</span>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:16px">
+    <button class="ghost" onclick="S.ecId=null;render()" style="flex:1">Cancel</button>
+    <button class="btn" onclick="saveChips()" style="flex:2">Save Chips</button>
+  </div>
+</div></div>`;
+}
+
+function photoModal(pl,dn){
+  if(!S.pid)return"";
+  const p=pl.find(x=>x.id===S.pid); if(!p)return"";
+  return`<div class="mo" onclick="if(event.target===this){S.pid=null;render()}">
+<div class="ms">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h3 class="serif" style="color:var(--gold)">📸 ${p.name}'s chips</h3>
+    <button onclick="S.pid=null;render()" style="background:none;border:none;color:#555;cursor:pointer;font-size:22px">×</button>
+  </div>
+  <div id="pbody">
+    <div onclick="$('pfile').click()" style="border:2px dashed #2a2a2a;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;margin-bottom:12px">
+      <div style="font-size:36px;margin-bottom:8px">📷</div>
+      <div style="color:#aaa;font-size:14px">Tap to take photo or upload</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:4px">AI will count the stacks</div>
+    </div>
+    <input id="pfile" type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)"/>
+    <button class="ghost" onclick="S.pid=null;render()" style="width:100%">Cancel</button>
+  </div>
+</div></div>`;
+}
+
+BIND.game=()=>{
+  if(S.qr)setTimeout(()=>drawQR("qrb2",roomUrl(S.roomId),140),80);
+  if(unsub)unsub();
+  startPolling(S.roomId);
+  unsub=onSync(r=>{
+    (r.events||[]).forEach(e=>{
+      if(!S.seen.has(e.id)){ S.seen.add(e.id); if(e.pid!==S.myId)showNotif(e.n); }
+    });
+    S.room=r;
+    if(S.ecId||S.pid) return;
+    if(S.qr){
+      // QR is showing — update players/pot without redrawing QR
+      const game=r.game||{}, pl=r.players||[], dn=game.denoms||[];
+      const ep=pl.map(p=>{const tb=(p.buyins||[]).reduce((s,b)=>s+b.amount,0);const cv=dn.reduce((s,d)=>s+(p.chips?.[d.label]||0)*d.value*100,0);return{...p,tb,cv};});
+      const pot=ep.reduce((s,p)=>s+p.tb,0);
+      const potEl=$("game-pot"); if(potEl) potEl.textContent=fmt(pot);
+      const plEl=$("game-players");
+      if(plEl) plEl.innerHTML=S.tab==="game"?playerCards(ep,dn):settleInner(ep);
+    } else {
+      $("app").innerHTML=SCREENS.game(); BIND.game();
+    }
+  });
+};
+
+// ── Game actions ──────────────────────────────────────────────────
+function calcBuyinCount(player, game){
+  // Count = total amount spent / starting stack value
+  const startingStack = game?.startingStack || S.ba || 10000;
+  const totalSpent = (player.buyins||[]).reduce((s,b)=>s+b.amount,0);
+  return Math.round(totalSpent / startingStack);
+}
+
+async function addBuyin(pid){
+  const r=await binGet(S.binId); if(!r)return;
+  const i=r.players.findIndex(p=>p.id===pid); if(i<0)return;
+  r.players[i].buyins=[...(r.players[i].buyins||[]),{amount:S.ba,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}];
+  const total=calcBuyinCount(r.players[i], r.game);
+  const ro=roast(r.players[i].name,total), fi=fish(r.players[i].name,total);
+  const notif={hl:ro.hl,sub:ro.sub,fish:fi};
+  const eid=uid();
+  r.events=[...(r.events||[]),{id:eid,pid,n:notif,ts:Date.now()}];
+  if(r.events.length>60)r.events=r.events.slice(-60);
+  await binSet(S.binId,r);
+  showNotif(notif); S.seen.add(eid);
+}
+
+function openChips(pid){
+  const p=(S.room?.players||[]).find(x=>x.id===pid); if(!p)return;
+  S.ecId=pid; S.ec={};
+  (S.room?.game?.denoms||[]).forEach(d=>S.ec[d.label]=p.chips?.[d.label]||0);
+  render();
+}
+
+async function saveChips(){
+  const r=await binGet(S.binId); if(!r)return;
+  const i=r.players.findIndex(p=>p.id===S.ecId);
+  if(i>=0)r.players[i].chips={...S.ec};
+  await binSet(S.binId,r); S.ecId=null; render();
+}
+
+function openPhoto(pid){ S.pid=pid; render(); }
+
+async function handlePhoto(input){
+  const file=input.files[0]; if(!file)return;
+  const body=$("pbody");
+  if(body)body.innerHTML=`<div style="text-align:center;padding:30px 0"><div style="font-size:32px;margin-bottom:12px">🤖</div><div style="color:var(--gold)">Counting chips…</div><div style="color:var(--muted);font-size:12px;margin-top:4px">AI is analyzing your stack</div></div>`;
+  // Compress image before sending to avoid timeout on large photos
+  const canvas=document.createElement("canvas");
+  const img=new Image();
+  img.onload=async()=>{
+    const MAX=800;
+    const scale=Math.min(1,MAX/Math.max(img.width,img.height));
+    canvas.width=img.width*scale; canvas.height=img.height*scale;
+    canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+    const compressed=canvas.toDataURL("image/jpeg",0.7);
+    await processPhoto(compressed, file);
+  };
+  img.src=URL.createObjectURL(file);
+}
+
+async function processPhoto(dataUrl, file){
+  const body=$("pbody");
+  if(body)body.innerHTML=`<div style="text-align:center;padding:30px 0"><div style="font-size:32px;margin-bottom:12px">🤖</div><div style="color:var(--gold)">Counting chips…</div><div style="color:var(--muted);font-size:12px;margin-top:4px">AI is analyzing your stack</div></div>`;
+  const b64=dataUrl.split(",")[1], prev=dataUrl;
+    const dn=S.room?.game?.denoms||[];
+    const dl2=dn.map(d=>`${d.label}=${fmt(d.value*100)} (${CN[d.ci]})`).join(", ");
+    try{
+      const res=await fetch("/api/ai-chips",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({imageBase64:b64,mimeType:"image/jpeg",denomList:dl2})});
+      const data=await res.json();
+      if(data.error) throw new Error("API error: "+data.error);
+      const txt=(data.text||"").trim();
+      if(!txt) throw new Error("Empty response. Check ANTHROPIC_API_KEY in Netlify and make sure you have credits.");
+      const jsonMatch=txt.match(/\{[\s\S]*\}/);
+      if(!jsonMatch) throw new Error("No JSON in response: "+txt.slice(0,100));
+      const parsed=JSON.parse(jsonMatch[0]);
+      const counts=parsed.counts||{};
+      window._pc={...counts};
+      const tot=dn.reduce((s,d)=>s+(counts[d.label]||0)*d.value*100,0);
+      if(body)body.innerHTML=`
+<img src="${prev}" style="width:100%;border-radius:10px;margin-bottom:12px;max-height:150px;object-fit:cover"/>
+${parsed.notes?`<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;margin-bottom:14px;color:#888;font-size:12px;font-style:italic">🤖 "${parsed.notes}"</div>`:""}
+${dn.map(d=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+<div class="cdot" style="background:${CC[d.ci]};width:16px;height:16px;flex-shrink:0"></div>
+<span style="color:#aaa;flex:1;font-size:13px">${d.label} <span style="color:var(--muted)">(${fmt(d.value*100)})</span></span>
+<button class="ico" onclick="apc('${d.label}',-1)">−</button>
+<input type="number" id="pc_${d.label}" value="${counts[d.label]||0}" min="0" style="width:56px;text-align:center;padding:6px 4px" onchange="window._pc['${d.label}']=parseInt(this.value)||0;upt()"/>
+<button class="ico" onclick="apc('${d.label}',1)">+</button>
+</div>`).join("")}
+<div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid #222;margin-bottom:14px">
+<span style="color:var(--muted)">Total</span><span style="color:var(--gold);font-weight:700;font-size:18px" id="ptot">${fmt(tot)}</span>
+</div>
+<div style="display:flex;gap:8px">
+<button class="ghost" onclick="S.pid=null;render()" style="flex:1">Cancel</button>
+<button class="btn" onclick="savePhoto()" style="flex:2">✓ Save</button>
+</div>`;
+    }catch(err){
+      console.error("Photo AI error:", err);
+      if(body)body.innerHTML=`<div style="text-align:center;padding:30px 0"><div style="font-size:28px;margin-bottom:8px">😬</div><div style="color:var(--red);margin-bottom:12px">Couldn't read the chips</div><div style="color:var(--muted);font-size:11px;margin-bottom:4px">${err?.message||"Unknown error"}</div><div style="color:var(--muted);font-size:11px;margin-bottom:16px">Make sure ANTHROPIC_API_KEY is set in Netlify env vars</div><div style="display:flex;gap:8px;margin-top:12px"><button class="ghost" onclick="$('pfile').click()" style="flex:1">Retry</button><button class="btn" onclick="S.pid=null;render()" style="flex:1">Close</button></div></div>`;
+    }
+}
+
+function apc(l,d){ if(!window._pc)window._pc={}; window._pc[l]=Math.max(0,(window._pc[l]||0)+d); const i=$(`pc_${l}`); if(i)i.value=window._pc[l]; upt(); }
+function upt(){ const dn=S.room?.game?.denoms||[]; const t=dn.reduce((s,d)=>s+(window._pc?.[d.label]||0)*d.value*100,0); const e=$("ptot"); if(e)e.textContent=fmt(t); }
+
+async function savePhoto(){
+  const counts=window._pc||{};
+  const r=await binGet(S.binId); if(!r)return;
+  const i=r.players.findIndex(p=>p.id===S.pid);
+  if(i>=0)r.players[i].chips={...counts};
+  await binSet(S.binId,r); S.pid=null; window._pc=null; render();
+}
+
+// ═══════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════
+(async()=>{
+  // Load default preset into S now that DEFAULT_PRESETS and getPresets are defined
+  const _dp = (() => {
+    try {
+      const saved = localStorage.getItem("poker-presets");
+      if(saved){ const p=JSON.parse(saved); if(p&&p[0]) return p[0]; }
+    } catch {}
+    return DEFAULT_PRESETS[0];
+  })();
+  S.gname = _dp.name;
+  S.denoms = _dp.denoms.map(d=>({...d}));
+  S.startChips = _dp.qty ? [..._dp.qty] : _dp.denoms.map(()=>1);
+  S.ba = _dp.qty ? _dp.denoms.reduce((s,d,i)=>s+(_dp.qty[i]||1)*d.value*100,0) : 10000;
+
+  const rid=new URLSearchParams(location.search).get("room");
+  if(rid){ S.roomId=rid; S.screen="join"; }
+  render();
+})();
+</script>
+</body>
+</html>
