@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Poker Night"/>
+<meta name="theme-color" content="#080808"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icon.png"/>
 <title>Poker Night 🃏</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -91,12 +97,16 @@ async function binGet(id) {
 
 async function binSet(id, data) {
   try {
+    const body = JSON.stringify(data);
+    console.log("binSet size:", body.length, "id:", id);
     const r = await fetch(`/api/room?id=${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body,
     });
-    if (!r.ok) { const t = await r.text(); console.error("binSet failed", r.status, t); alert("Storage error: " + t); }
+    const t = await r.text();
+    if (!r.ok) { console.error("binSet failed", r.status, t); alert("Storage error: " + r.status + " " + t); }
+    else console.log("binSet ok:", t);
   } catch(e) { console.error("binSet error", e); alert("Network error: " + e.message); }
 }
 
@@ -177,6 +187,83 @@ function showNotif(n) {
   $("nh").textContent=n.hl||""; $("ns").textContent=n.sub||"";
   const f=$("nf"); f.textContent=n.fish||""; f.style.display=n.fish?"block":"none";
   $("nb").classList.add("show"); clearTimeout(nt); nt=setTimeout(()=>$("nb").classList.remove("show"),5000);
+}
+
+// ── Flash + Horn effect ──────────────────────────────────────────
+function flashAndHorn(){
+  // 5x rapid white screen flashes
+  const flash = document.createElement("div");
+  flash.style.cssText = "position:fixed;inset:0;background:white;z-index:99999;pointer-events:none;opacity:0";
+  document.body.appendChild(flash);
+  let count = 0;
+  const FLASHES = 5;
+  const ON = 60, OFF = 50; // ms on/off
+  function doFlash(){
+    if(count >= FLASHES){ flash.remove(); return; }
+    flash.style.opacity = "1";
+    setTimeout(()=>{
+      flash.style.opacity = "0";
+      count++;
+      setTimeout(doFlash, OFF);
+    }, ON);
+  }
+  doFlash();
+
+  // Max volume horn using Web Audio API
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Compressor to maximise loudness
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -6;
+    comp.knee.value = 0;
+    comp.ratio.value = 20;
+    comp.attack.value = 0;
+    comp.release.value = 0.1;
+    comp.connect(ctx.destination);
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = 3.0; // push to max
+    masterGain.connect(comp);
+
+    const playTone = (freq, startT, durT) => {
+      // Layer 3 oscillators per tone for max thickness
+      ["sawtooth","square","sawtooth"].forEach((type, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const dist = ctx.createWaveShaper();
+
+        const curve = new Float32Array(512);
+        for(let i=0;i<512;i++){ const x=i*2/512-1; curve[i]=Math.tanh(x*4); }
+        dist.curve = curve;
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq * (idx===1?1.01:idx===2?0.99:1), ctx.currentTime+startT);
+        osc.frequency.linearRampToValueAtTime(freq*(idx===1?1.015:idx===2?0.985:1.005), ctx.currentTime+startT+durT*0.4);
+
+        gain.gain.setValueAtTime(0, ctx.currentTime+startT);
+        gain.gain.linearRampToValueAtTime(idx===1?0.8:0.9, ctx.currentTime+startT+0.01);
+        gain.gain.setValueAtTime(idx===1?0.8:0.9, ctx.currentTime+startT+durT-0.04);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime+startT+durT);
+
+        osc.connect(dist); dist.connect(gain); gain.connect(masterGain);
+        osc.start(ctx.currentTime+startT);
+        osc.stop(ctx.currentTime+startT+durT);
+      });
+    };
+
+    // LOUD horn: ta-ta-TAAAAAA
+    playTone(440, 0.00, 0.13);
+    playTone(554, 0.00, 0.13);
+    playTone(440, 0.17, 0.13);
+    playTone(554, 0.17, 0.13);
+    playTone(440, 0.34, 0.55);
+    playTone(554, 0.34, 0.55);
+    playTone(660, 0.34, 0.55);
+    playTone(880, 0.34, 0.55);
+
+    setTimeout(()=> ctx.close(), 2000);
+  } catch(e){ console.log("Audio error:", e); }
 }
 
 // ── Settlement ────────────────────────────────────────────────────
@@ -577,7 +664,7 @@ SCREENS.lobby=()=>{
     <h2 class="serif" style="color:var(--gold);font-size:22px">${room.game?.gameName||"Loading…"}</h2>
     <p style="color:var(--muted);font-size:12px;margin-top:4px">${S.isHost?"Share the QR — waiting for players":"Waiting for host to start…"}</p>
   </div>
-  ${tablesvg(pl,S.myId)}
+  <div id="lobby-table">${tablesvg(pl,S.myId)}</div>
   <div style="margin-bottom:20px">
     <span class="lbl" id="lobby-count" style="text-align:center;display:block;margin-bottom:10px">${pl.length} player${pl.length!==1?"s":""} seated</span>
     <div id="lobby-players">${pl.map(p=>`<div class="card${p.id===S.myId?" me":""}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:6px">
@@ -624,6 +711,9 @@ BIND.lobby=()=>{
     const cnt=$("lobby-count");
     if(cnt) cnt.textContent=`${pl.length} player${pl.length!==1?"s":""} seated`;
     if(sbtn){ sbtn.disabled=pl.length<1; sbtn.textContent=`🚀 Start Game (${pl.length} player${pl.length!==1?"s":""})`; }
+    // Update table SVG too
+    const tbl=$("lobby-table");
+    if(tbl) tbl.innerHTML=tablesvg(pl,S.myId);
   });
 };
 
@@ -694,6 +784,7 @@ function playerCards(ep,dn){
   </div>
   ${can?`<div style="display:flex;gap:6px;margin-top:10px">
     <button class="ghost" onclick="addBuyin('${p.id}')" style="flex:1;color:var(--gold)">+ Buyin ${fmt(S.ba)}</button>
+    ${(p.buyins||[]).length>0?`<button class="ico" onclick="undoBuyin('${p.id}')" title="Undo last buyin" style="color:var(--red)">↩</button>`:""}
     <button class="ico" onclick="openPhoto('${p.id}')" title="AI count">📸</button>
     <button class="ico" onclick="openChips('${p.id}')" title="Manual count">🪙</button>
   </div>`:""}
@@ -701,15 +792,17 @@ function playerCards(ep,dn){
 }
 
 function gameTab(ep,dn){
-  const amts=[5000,10000,20000,50000,100000];
+  const stack = (S.room?.game?.startingStack)||S.ba||10000;
+  const amts=[1,2,3,4,5,6].map(x=>x*stack);
   return`
 ${tablesvg(ep,S.myId)}
 <div style="margin-bottom:16px">
   <span class="lbl">Buyin amount</span>
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-    ${amts.map(a=>`<button class="ghost${S.ba===a?" on":""}" onclick="S.ba=${a};render()">${fmt(a)}</button>`).join("")}
-    <input type="number" value="${S.ba/100}" min="1" style="width:80px" onchange="S.ba=Math.round((parseFloat(this.value)||0)*100)"/>
+    ${amts.map((a,i)=>`<button class="ghost${S.ba===a?" on":""}" onclick="S.ba=${a};render()">${i+1}x</button>`).join("")}
+    <input type="number" value="${S.ba/100}" min="0.01" step="0.01" style="width:80px" onchange="S.ba=Math.round((parseFloat(this.value)||0)*100)"/>
   </div>
+  <div style="color:var(--muted);font-size:11px;margin-top:6px">1x = ${fmt(stack)} · selected: <span style="color:var(--gold)">${fmt(S.ba)}</span></div>
 </div>
 ${playerCards(ep,dn)}`;
 }
@@ -805,12 +898,15 @@ function photoModal(pl,dn){
 }
 
 BIND.game=()=>{
+  // Set default buyin to 1x starting stack
+  const stack=(S.room?.game?.startingStack)||S.ba||10000;
+  if(S.ba!==stack) S.ba=stack;
   if(S.qr)setTimeout(()=>drawQR("qrb2",roomUrl(S.roomId),140),80);
   if(unsub)unsub();
   startPolling(S.roomId);
   unsub=onSync(r=>{
     (r.events||[]).forEach(e=>{
-      if(!S.seen.has(e.id)){ S.seen.add(e.id); if(e.pid!==S.myId)showNotif(e.n); }
+      if(!S.seen.has(e.id)){ S.seen.add(e.id); if(e.pid!==S.myId){ showNotif(e.n); flashAndHorn(); } }
     });
     S.room=r;
     if(S.ecId||S.pid) return;
@@ -837,17 +933,31 @@ function calcBuyinCount(player, game){
 }
 
 async function addBuyin(pid){
-  const r=await binGet(S.binId); if(!r)return;
-  const i=r.players.findIndex(p=>p.id===pid); if(i<0)return;
-  r.players[i].buyins=[...(r.players[i].buyins||[]),{amount:S.ba,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}];
-  const total=calcBuyinCount(r.players[i], r.game);
-  const ro=roast(r.players[i].name,total), fi=fish(r.players[i].name,total);
-  const notif={hl:ro.hl,sub:ro.sub,fish:fi};
-  const eid=uid();
-  r.events=[...(r.events||[]),{id:eid,pid,n:notif,ts:Date.now()}];
-  if(r.events.length>60)r.events=r.events.slice(-60);
-  await binSet(S.binId,r);
-  showNotif(notif); S.seen.add(eid);
+  try {
+    const r=await binGet(S.binId); if(!r){ alert("Room not found"); return; }
+    const i=r.players.findIndex(p=>p.id===pid); if(i<0){ alert("Player not found"); return; }
+    r.players[i].buyins=[...(r.players[i].buyins||[]),{amount:S.ba,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}];
+    const total=calcBuyinCount(r.players[i], r.game);
+    const ro=roast(r.players[i].name,total), fi=fish(r.players[i].name,total);
+    const notif={hl:ro.hl,sub:ro.sub,fish:fi};
+    const eid=uid();
+    r.events=[...(r.events||[]),{id:eid,pid,n:notif,ts:Date.now()}];
+    if(r.events.length>60)r.events=r.events.slice(-60);
+    await binSet(S.binId,r);
+    showNotif(notif); flashAndHorn(); S.seen.add(eid);
+  } catch(err){ alert("Buyin error: "+err.message); }
+}
+
+async function undoBuyin(pid){
+  if(!confirm("Remove last buyin?")) return;
+  try {
+    const r=await binGet(S.binId); if(!r)return;
+    const i=r.players.findIndex(p=>p.id===pid); if(i<0)return;
+    const buyins = r.players[i].buyins||[];
+    if(buyins.length===0) return;
+    r.players[i].buyins = buyins.slice(0,-1);
+    await binSet(S.binId,r);
+  } catch(err){ alert("Error: "+err.message); }
 }
 
 function openChips(pid){
@@ -957,6 +1067,11 @@ async function savePhoto(){
   if(rid){ S.roomId=rid; S.screen="join"; }
   render();
 })();
+</script>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("/sw.js").then(()=>console.log("SW registered")).catch(e=>console.log("SW error",e));
+}
 </script>
 </body>
 </html>
