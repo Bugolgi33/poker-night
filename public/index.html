@@ -428,6 +428,8 @@ function dl(){
   <div class="cd" style="background:${CC[d.ci]}"></div>
 
   <input style="width:72px" type="number" placeholder="$" value="${d.value}" min="0" step="0.25" oninput="S.denoms[${i}].value=parseFloat(this.value)||0;ucb();$('dl').innerHTML=dl()"/>
+  <span style="color:var(--muted);font-size:11px;flex-shrink:0">×</span>
+  <input type="number" id="sc_${i}" value="${S.startChips?.[i]||1}" min="1" style="width:44px;padding:4px 6px;font-size:13px;text-align:center;background:var(--card);border:1px solid var(--border2);border-radius:6px" oninput="S.startChips[${i}]=parseInt(this.value)||1;updateStackTotal()"/>
   <button style="background:none;border:none;color:#444;cursor:pointer;font-size:20px;padding:0 4px" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='#444'" onclick="S.denoms.splice(${i},1);$('dl').innerHTML=dl();ucb()">×</button>
 </div>`).join("");
 
