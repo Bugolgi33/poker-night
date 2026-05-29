@@ -427,31 +427,15 @@ function dl(){
   </select>
   <div class="cd" style="background:${CC[d.ci]}"></div>
 
-  <input style="width:72px" type="number" placeholder="$" value="${d.value}" min="0" step="0.25" oninput="S.denoms[${i}].value=parseFloat(this.value)||0;ucb();$('dl').innerHTML=dl()"/>
-  <span style="color:var(--muted);font-size:11px;flex-shrink:0">×</span>
+  <span style="color:var(--muted);font-size:11px;flex-shrink:0">$</span>
+  <input style="width:60px" type="number" placeholder="val" value="${d.value}" min="0" step="0.25" oninput="S.denoms[${i}].value=parseFloat(this.value)||0;ucb();$('dl').innerHTML=dl()"/>
+  <span style="color:var(--muted);font-size:11px;flex-shrink:0">× qty</span>
   <input type="number" id="sc_${i}" value="${S.startChips?.[i]||1}" min="1" style="width:44px;padding:4px 6px;font-size:13px;text-align:center;background:var(--card);border:1px solid var(--border2);border-radius:6px" oninput="S.startChips[${i}]=parseInt(this.value)||1;updateStackTotal()"/>
   <button style="background:none;border:none;color:#444;cursor:pointer;font-size:20px;padding:0 4px" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='#444'" onclick="S.denoms.splice(${i},1);$('dl').innerHTML=dl();ucb()">×</button>
 </div>`).join("");
 
   // Stack value preview: show chips with count input + live total
-  const stackPreview = S.denoms.every(d=>d.label&&d.value>0) ? `
-<div style="background:#0a0a0a;border:1px solid #1e1e1e;border-radius:10px;padding:12px 14px;margin-top:12px">
-  <span class="lbl" style="margin-bottom:8px">Starting stack preview</span>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-    ${S.denoms.map((d,i)=>`
-    <div style="display:flex;align-items:center;gap:6px;background:#111;border:1px solid #222;border-radius:8px;padding:6px 10px">
-      <div class="cdot" style="background:${CC[d.ci]};width:12px;height:12px"></div>
-      <span style="color:var(--muted);font-size:11px">× ${fmt(d.value*100)}</span>
-      <input type="number" id="sc_${i}" value="${S.startChips?.[i]||1}" min="1" style="width:44px;padding:4px 6px;font-size:12px;text-align:center;margin-left:auto" oninput="updateStackTotal()"/>
-    </div>`).join("")}
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #1e1e1e;padding-top:8px">
-    <span style="color:var(--muted);font-size:12px">Starting stack value</span>
-    <span style="color:var(--gold);font-weight:700;font-size:18px" id="stack-total">${fmt(calcStackTotal())}</span>
-  </div>
-</div>` : "";
-
-  return denomsHtml + stackPreview;
+  return denomsHtml;
 }
 
 function calcStackTotal(){
