@@ -30,6 +30,14 @@
   --bg:#080808;--card:#0f0f0f;--border:#1e1e1e;--border2:#2e2e2e;
   --text:#e8e8e8;--muted:#666;
 }
+[data-theme="light"]{
+  --bg:#F2F2F7;--card:#FFFFFF;--border:#E5E5EA;--border2:#D1D1D6;
+  --text:#000000;--muted:#8E8E93;--gold:#B8860B;--gold-dim:#8B6508;
+  --green:#34C759;--red:#FF3B30;
+}
+.theme-toggle{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:4px 6px}
+.theme-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:4px 6px;border-radius:14px;transition:background .15s;color:var(--text)}
+.theme-btn.active{background:var(--border2)}
 html,body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;-webkit-font-smoothing:antialiased}
 #app{max-width:460px;margin:0 auto;padding:0 16px 80px;min-height:100vh}
 .serif{font-family:'Playfair Display',serif}
@@ -1034,6 +1042,26 @@ async function savePhoto(){
 // ═══════════════════════════════════════════════════════
 //  BOOT
 // ═══════════════════════════════════════════════════════
+// ── THEME ─────────────────────────────────────────────────────────
+function applyTheme(theme){
+  if(theme==='system'){
+    const dark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  } else {
+    document.documentElement.setAttribute('data-theme',theme);
+  }
+}
+function setTheme(theme){
+  S.theme=theme;
+  localStorage.setItem('poker-theme',theme);
+  applyTheme(theme);
+  // re-render just the navbar buttons
+  const nr=document.querySelector('.theme-toggle');
+  if(nr){nr.innerHTML=`<button class="theme-btn${theme==='dark'?' active':''}" onclick="setTheme('dark')" title="Dark">🌙</button><button class="theme-btn${theme==='system'?' active':''}" onclick="setTheme('system')" title="System">⚙️</button><button class="theme-btn${theme==='light'?' active':''}" onclick="setTheme('light')" title="Light">☀️</button>`;}
+}
+// Listen for system theme changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(S.theme==='system')applyTheme('system');});
+
 (async()=>{
   // Load default preset into S now that DEFAULT_PRESETS and getPresets are defined
   const _dp = (() => {
@@ -1047,6 +1075,10 @@ async function savePhoto(){
   S.denoms = _dp.denoms.map(d=>({...d}));
   S.startChips = _dp.qty ? [..._dp.qty] : _dp.denoms.map(()=>1);
   S.ba = _dp.qty ? _dp.denoms.reduce((s,d,i)=>s+(_dp.qty[i]||1)*d.value*100,0) : 10000;
+
+  // Load saved theme
+  S.theme=localStorage.getItem('poker-theme')||'system';
+  applyTheme(S.theme);
 
   const rid=new URLSearchParams(location.search).get("room");
   if(rid){ S.roomId=rid; S.screen="join"; }
