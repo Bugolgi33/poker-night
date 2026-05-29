@@ -439,9 +439,8 @@ function dl(){
     ${S.denoms.map((d,i)=>`
     <div style="display:flex;align-items:center;gap:6px;background:#111;border:1px solid #222;border-radius:8px;padding:6px 10px">
       <div class="cdot" style="background:${CC[d.ci]};width:12px;height:12px"></div>
-      <span style="color:#aaa;font-size:12px">${d.label}</span>
-      <input type="number" id="sc_${i}" value="${S.startChips?.[i]||1}" min="1" style="width:44px;padding:4px 6px;font-size:12px;text-align:center" oninput="updateStackTotal()"/>
       <span style="color:var(--muted);font-size:11px">× ${fmt(d.value*100)}</span>
+      <input type="number" id="sc_${i}" value="${S.startChips?.[i]||1}" min="1" style="width:44px;padding:4px 6px;font-size:12px;text-align:center;margin-left:auto" oninput="updateStackTotal()"/>
     </div>`).join("")}
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #1e1e1e;padding-top:8px">
