@@ -30,58 +30,6 @@
   --bg:#080808;--card:#0f0f0f;--border:#1e1e1e;--border2:#2e2e2e;
   --text:#e8e8e8;--muted:#666;
 }
-[data-theme="light"]{
-  --bg:#F2F2F7;--card:#FFFFFF;--border:#E5E5EA;--border2:#D1D1D6;
-  --text:#000000;--muted:#8E8E93;--gold:#B8860B;--gold-dim:#8B6508;
-  --green:#34C759;--red:#FF3B30;
-}
-/* QR code invert in light mode */
-[data-theme="light"] #qrb img,
-[data-theme="light"] #qrb2 img,
-[data-theme="light"] #qrb canvas,
-[data-theme="light"] #qrb2 canvas{filter:invert(1);}
-
-/* Poker table in light mode */
-[data-theme="light"] .table-wrap ellipse,
-[data-theme="light"] svg ellipse{transition:fill .2s,stroke .2s;}
-[data-theme="light"] svg ellipse[fill="#0D2010"]{fill:#C8E6C9;}
-[data-theme="light"] svg ellipse[fill="#1a3a1a"]{fill:#D0EDD0;}
-[data-theme="light"] svg text{fill:#2E7D32;}
-
-/* Fix hardcoded dark colors in light mode */
-[data-theme="light"] .card,[data-theme="light"] .cg{background:#fff;}
-[data-theme="light"] .row{border-color:#E5E5EA;}
-[data-theme="light"] .buyin-pill{background:#F2F2F7;color:#8E8E93;}
-[data-theme="light"] .chip-badge,[data-theme="light"] .cbadge{background:#F2F2F7;}
-[data-theme="light"] .urlbox,[data-theme="light"] .url-box{background:#F2F2F7;color:#666;}
-[data-theme="light"] .ms,[data-theme="light"] .modal-sheet{background:#F2F2F7;}
-[data-theme="light"] input,[data-theme="light"] select{background:#E5E5EA;color:#000;}
-[data-theme="light"] .nav{background:rgba(242,242,247,.85);}
-[data-theme="light"] .ghost{border-color:#D1D1D6;color:#3A3A3C;}
-[data-theme="light"] .btn2{background:#E5E5EA;color:#000;}
-[data-theme="light"] #theme-btn{background:#000!important;color:#fff!important;border-color:#000!important;}
-[data-theme="light"] .nbi{background:rgba(255,255,255,.95);border-color:#E5E5EA;}
-[data-theme="light"] .settle-row,[data-theme="light"] .srow{background:#E8F5E9;border-color:#A5D6A7;}
-[data-theme="light"] .trophy,.trophy-card{background:linear-gradient(135deg,#FFF9E6,#E8F5E9);}
-
-/* Hardcoded dark colors in light mode */
-[data-theme="light"] .card{background:#fff;border-color:#E5E5EA;}
-[data-theme="light"] .cg{background:#fff;}
-[data-theme="light"] .row{border-color:#E5E5EA;}
-[data-theme="light"] .player-card{background:#fff;}
-[data-theme="light"] .buyin-pill{background:#F2F2F7;color:#8E8E93;}
-[data-theme="light"] .chip-badge{background:#F2F2F7;}
-[data-theme="light"] .url-box,.urlbox{background:#F2F2F7;color:#666;}
-[data-theme="light"] .modal-sheet,.ms{background:#F2F2F7;}
-[data-theme="light"] input,
-[data-theme="light"] select{background:#E5E5EA;color:#000;}
-[data-theme="light"] .nav{background:rgba(242,242,247,.85);}
-[data-theme="light"] .ghost{border-color:#D1D1D6;color:#3A3A3C;}
-[data-theme="light"] .btn2{background:#E5E5EA;color:#000;}
-[data-theme="light"] #theme-btn{background:#000;color:#fff;border-color:#000;}
-.theme-toggle{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:4px 6px}
-.theme-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:4px 6px;border-radius:14px;transition:background .15s;color:var(--text)}
-.theme-btn.active{background:var(--border2)}
 html,body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;-webkit-font-smoothing:antialiased}
 #app{max-width:460px;margin:0 auto;padding:0 16px 80px;min-height:100vh}
 .serif{font-family:'Playfair Display',serif}
@@ -126,7 +74,6 @@ input:focus,select:focus{border-color:var(--gold-dim)}
 </head>
 <body>
 <div id="app"></div>
-<button id="theme-btn" onclick="setTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light')" style="position:fixed;top:12px;right:16px;z-index:9000;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:14px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif;transition:background .2s,color .2s,border-color .2s">Light</button>
 <div id="nb"><div class="ni"><div class="nh" id="nh"></div><div class="ns" id="ns"></div><div class="nf" id="nf"></div></div></div>
 
 <script>
@@ -1087,26 +1034,6 @@ async function savePhoto(){
 // ═══════════════════════════════════════════════════════
 //  BOOT
 // ═══════════════════════════════════════════════════════
-// ── THEME ─────────────────────────────────────────────────────────
-function applyTheme(theme){
-  if(theme==='system'){
-    const dark=window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme',dark?'dark':'light');
-  } else {
-    document.documentElement.setAttribute('data-theme',theme);
-  }
-}
-function setTheme(theme){
-  S.theme=theme;
-  localStorage.setItem('poker-theme',theme);
-  applyTheme(theme);
-  // re-render just the navbar buttons
-  const nr=document.querySelector('.theme-toggle');
-  if(nr){nr.innerHTML=`<button class="theme-btn${theme==='dark'?' active':''}" onclick="setTheme('dark')" title="Dark">🌙</button><button class="theme-btn${theme==='system'?' active':''}" onclick="setTheme('system')" title="System">⚙️</button><button class="theme-btn${theme==='light'?' active':''}" onclick="setTheme('light')" title="Light">☀️</button>`;}
-}
-// Listen for system theme changes
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(S.theme==='system')applyTheme('system');});
-
 (async()=>{
   // Load default preset into S now that DEFAULT_PRESETS and getPresets are defined
   const _dp = (() => {
@@ -1120,10 +1047,6 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>
   S.denoms = _dp.denoms.map(d=>({...d}));
   S.startChips = _dp.qty ? [..._dp.qty] : _dp.denoms.map(()=>1);
   S.ba = _dp.qty ? _dp.denoms.reduce((s,d,i)=>s+(_dp.qty[i]||1)*d.value*100,0) : 10000;
-
-  // Load saved theme
-  S.theme=localStorage.getItem('poker-theme')||'system';
-  applyTheme(S.theme);
 
   const rid=new URLSearchParams(location.search).get("room");
   if(rid){ S.roomId=rid; S.screen="join"; }
